@@ -2,11 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 import tensorflow as tf
+from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 
 # Set page configuration
 st.set_page_config(
@@ -15,35 +12,45 @@ st.set_page_config(
     layout="wide"
 )
 
-@st.cache_resource
-def download_nltk_resources():
-    import os
-    import nltk
-    
-    # Create directory
-    os.makedirs('nltk_data/tokenizers', exist_ok=True)
-    os.makedirs('nltk_data/corpora', exist_ok=True)
-    
-    # Force download
-    nltk.download('punkt', download_dir='nltk_data')
-    nltk.download('stopwords', download_dir='nltk_data')
-    
-    # Set the NLTK data path to find these resources
-    nltk.data.path.append('nltk_data')
-
-download_nltk_resources()
-
-# Preprocessing function
+# Simple preprocessing function that doesn't rely on NLTK
 @st.cache_data
 def preprocess_text(text):
     if not isinstance(text, str):
         return ''
+    
+    # Convert to lowercase
     text = text.lower()
+    
+    # Remove special characters and numbers
     text = re.sub(r'[^a-zA-Z\s]', '', text)
+    
+    # Remove extra whitespace
     text = re.sub(r'\s+', ' ', text).strip()
-    tokens = word_tokenize(text)
-    stop_words = set(stopwords.words('english'))
-    tokens = [token for token in tokens if token not in stop_words]
+    
+    # Simple split by whitespace - no need for NLTK tokenizer
+    tokens = text.split()
+    
+    # Basic English stopwords list
+    basic_stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 
+                       'you', 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 
+                       'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 
+                       'itself', 'they', 'them', 'their', 'theirs', 'themselves', 
+                       'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 
+                       'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 
+                       'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 
+                       'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while', 
+                       'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 
+                       'into', 'through', 'during', 'before', 'after', 'above', 'below', 
+                       'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 
+                       'under', 'again', 'further', 'then', 'once', 'here', 'there', 
+                       'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 
+                       'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 
+                       'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 
+                       's', 't', 'can', 'will', 'just', 'don', 'should', 'now']
+    
+    # Filter stopwords
+    tokens = [token for token in tokens if token not in basic_stopwords]
+    
     return ' '.join(tokens)
 
 # Load the model and tokenizer from Hugging Face
@@ -80,24 +87,31 @@ def predict_sentiment(text, model, tokenizer):
 def main():
     st.title("📊 Financial Sentiment Analysis")
     st.markdown("### Powered by DistilBERT")
-
+    
+    # Add an info message about the preprocessing
+    st.info("Note: This app uses a custom preprocessing pipeline to analyze financial text sentiment.")
+    
     model, tokenizer = load_distilbert_model()
     if model is None or tokenizer is None:
         st.error("Failed to load the model from Hugging Face.")
         st.stop()
-
+    
     # User input
     st.subheader("Enter text for sentiment analysis")
     user_input = st.text_area("Type or paste financial text:", height=150)
     
     if st.button("Analyze Sentiment"):
         if user_input:
-            sentiment, confidence = predict_sentiment(user_input, model, tokenizer)
+            with st.spinner("Analyzing sentiment..."):
+                sentiment, confidence = predict_sentiment(user_input, model, tokenizer)
+                
             if sentiment == "Positive":
                 st.success(f"Sentiment: {sentiment}")
             else:
                 st.error(f"Sentiment: {sentiment}")
+            
             st.info(f"Confidence: {confidence:.2%}")
+            
             with st.expander("View Preprocessed Text"):
                 st.write(preprocess_text(user_input))
 
