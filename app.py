@@ -40,11 +40,11 @@ def preprocess_text(text):
     tokens = [token for token in tokens if token not in stop_words]
     return ' '.join(tokens)
 
-# Load the DistilBERT model and tokenizer
+# Load the model and tokenizer from Hugging Face
 @st.cache_resource
 def load_distilbert_model():
     try:
-        model_path = 'best_model/transformer_model'
+        model_path = "Bazeet/streamlit-financial-model"
         model = TFAutoModelForSequenceClassification.from_pretrained(model_path)
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         return model, tokenizer
@@ -74,15 +74,16 @@ def predict_sentiment(text, model, tokenizer):
 def main():
     st.title("📊 Financial Sentiment Analysis")
     st.markdown("### Powered by DistilBERT")
-    
+
     model, tokenizer = load_distilbert_model()
     if model is None or tokenizer is None:
-        st.error("Failed to load the model. Please check model files in 'best_model/transformer_model'.")
+        st.error("Failed to load the model from Hugging Face.")
         st.stop()
-    
+
     # User input
     st.subheader("Enter text for sentiment analysis")
     user_input = st.text_area("Type or paste financial text:", height=150)
+    
     if st.button("Analyze Sentiment"):
         if user_input:
             sentiment, confidence = predict_sentiment(user_input, model, tokenizer)
