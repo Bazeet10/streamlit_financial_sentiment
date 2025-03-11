@@ -15,15 +15,21 @@ st.set_page_config(
     layout="wide"
 )
 
-# Download NLTK resources
 @st.cache_resource
 def download_nltk_resources():
-    try:
-        nltk.data.find('tokenizers/punkt')
-        nltk.data.find('corpora/stopwords')
-    except LookupError:
-        nltk.download('punkt')
-        nltk.download('stopwords')
+    import os
+    import nltk
+    
+    # Create directory
+    os.makedirs('nltk_data/tokenizers', exist_ok=True)
+    os.makedirs('nltk_data/corpora', exist_ok=True)
+    
+    # Force download
+    nltk.download('punkt', download_dir='nltk_data')
+    nltk.download('stopwords', download_dir='nltk_data')
+    
+    # Set the NLTK data path to find these resources
+    nltk.data.path.append('nltk_data')
 
 download_nltk_resources()
 
